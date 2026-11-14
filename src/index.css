@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area insets for notched phones */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Hide scrollbar for category tabs and horizontal lists */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Touch active state feedback */
+.touch-press:active {
+  transform: scale(0.97);
+}
+
+/* Modern card surface */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
