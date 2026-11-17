@@ -129,11 +129,13 @@ export const OrderDetails = () => {
 
     // E. Secure Redirect to Main KOT Billing POS
     try {
+      setActionLoading(true);
       const posBaseUrl = import.meta.env.VITE_POS_URL || 'https://kot-frontend-zeta.vercel.app/restaurant/pos';
       const targetUrl = `${posBaseUrl}?orderId=${encodeURIComponent(order._id)}`;
       window.location.href = targetUrl;
     } catch (err) {
       setError('Failed to initiate POS navigation: ' + (err.message || 'Unknown error'));
+      setActionLoading(false);
     }
   };
 
