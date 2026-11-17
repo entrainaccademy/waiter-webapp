@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   RefreshCw,
   ShoppingBag,
+  ExternalLink,
 } from 'lucide-react';
 import orderService from '../services/orderService';
 import socketService from '../services/socket';
@@ -84,41 +85,55 @@ export const OrderDetails = () => {
     };
   }, [id]);
 
-  // 1. Request Bill from Counter (Pending cashier confirmation)
-  const handleRequestBill = async () => {
-    if (!isOnline) {
-      setError('Cannot submit bill request while offline.');
-      return;
-    }
-    if (!window.confirm('Send bill request to counter cashier? (Cashier will confirm and generate the bill)')) {
-      return;
-    }
-    try {
-      setActionLoading(true);
-      setError('');
-      await orderService.requestBill(id);
-      setSuccessMsg('Bill request sent successfully.');
-      await fetchOrderDetails();
-    } catch (err) {
-      setError(err.message || 'Failed to submit bill request.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  // 1. Direct POS Billing Navigation & Permission Validation
+  const handleRequestBill = () => {
+    setError('');
 
-  // Cancel pending bill request
-  const handleCancelBillRequest = async () => {
-    if (!window.confirm('Cancel this pending bill request?')) return;
+    // A. Verify user is authenticated
+    if (!user) {
+      setError('You must be signed in to access billing.');
+      return;
+    }
+
+    // B. Verify restaurant-level tenancy
+    const userRestId = user.restaurantId?._id || user.restaurantId;
+    const orderRestId = order.restaurantId?._id || order.restaurantId;
+    if (userRestId && orderRestId && String(userRestId) !== String(orderRestId)) {
+      setError('You do not have permission to access billing for another restaurant.');
+      return;
+    }
+
+    // C. Verify waiter has permission to initiate billing handoff
+    const hasBillingPermission =
+      ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'].includes(user.role) ||
+      hasPermission('billing:create') ||
+      hasPermission('billing:view') ||
+      hasPermission('orders:manage') ||
+      hasPermission('orders:view');
+
+    if (!hasBillingPermission) {
+      setError('You do not have permission to access billing.');
+      return;
+    }
+
+    // D. Verify order is eligible for billing
+    if (['BILLED', 'COMPLETED', 'CANCELLED'].includes(order.status)) {
+      setError(`Cannot generate bill for an order in ${order.status} status.`);
+      return;
+    }
+
+    if (!order.items || order.items.length === 0) {
+      setError('Cannot generate bill for an empty order.');
+      return;
+    }
+
+    // E. Secure Redirect to Main KOT Billing POS
     try {
-      setActionLoading(true);
-      setError('');
-      await orderService.cancelBillRequest(id);
-      setSuccessMsg('Bill request cancelled.');
-      await fetchOrderDetails();
+      const posBaseUrl = import.meta.env.VITE_POS_URL || 'https://kot-frontend-zeta.vercel.app/restaurant/pos';
+      const targetUrl = `${posBaseUrl}?orderId=${encodeURIComponent(order._id)}`;
+      window.location.href = targetUrl;
     } catch (err) {
-      setError(err.message || 'Failed to cancel bill request.');
-    } finally {
-      setActionLoading(false);
+      setError('Failed to initiate POS navigation: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -334,66 +349,18 @@ export const OrderDetails = () => {
             </button>
           )}
 
-          {/* Request / Generate Bill */}
-          {(() => {
-            const billStatus = order.billRequest?.status || 'NOT_REQUESTED';
-
-            if (billStatus === 'REQUESTED') {
-              const isRequestedByMe =
-                user?.id === (order.billRequest?.requestedBy?._id || order.billRequest?.requestedBy) ||
-                user?.role !== 'WAITER';
-
-              return (
-                <div className="space-y-2">
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-center space-y-1.5 shadow-sm">
-                    <div className="flex items-center justify-center gap-1.5 text-amber-800 font-extrabold text-xs">
-                      <Clock className="w-4 h-4 animate-spin text-amber-600" />
-                      <span>Bill Request Sent to Counter</span>
-                    </div>
-                    <p className="text-[11px] text-amber-700">
-                      Requested by {order.billRequest?.requestedBy?.name || 'Staff'}. Awaiting cashier confirmation.
-                    </p>
-                    {isRequestedByMe && (
-                      <button
-                        type="button"
-                        onClick={handleCancelBillRequest}
-                        disabled={actionLoading}
-                        className="mt-1 text-[11px] font-bold text-amber-900 hover:text-red-600 underline transition-colors cursor-pointer"
-                      >
-                        Cancel Bill Request
-                      </button>
-                    )}
-                  </div>
-
-                  <button
-                    disabled
-                    className="w-full py-3.5 px-4 bg-amber-500 text-white font-extrabold text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 cursor-not-allowed opacity-90"
-                  >
-                    <Clock className="w-4 h-4 animate-spin text-white" />
-                    <span>Bill Requested</span>
-                  </button>
-                </div>
-              );
-            }
-
-            return (
-              <div className="space-y-1.5">
-                {billStatus === 'CANCELLED' && (
-                  <div className="text-center text-[11px] font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2 mb-1">
-                    Previous bill request was cancelled. You can request again below.
-                  </div>
-                )}
-                <button
-                  onClick={handleRequestBill}
-                  disabled={actionLoading}
-                  className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
-                >
-                  <Receipt className="w-4 h-4 text-orange-400" />
-                  <span>Request Bill / Generate Invoice</span>
-                </button>
-              </div>
-            );
-          })()}
+          {/* Request Bill / Generate Invoice Direct Action */}
+          <div className="space-y-1.5">
+            <button
+              onClick={handleRequestBill}
+              disabled={actionLoading}
+              className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
+            >
+              <Receipt className="w-4 h-4 text-orange-400" />
+              <span>Request Bill / Generate Invoice</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400 ml-1" />
+            </button>
+          </div>
 
           {/* Cancel Order */}
           {canManageOrders && (
