@@ -80,7 +80,7 @@ export const ItemNotesModal = ({ isOpen, onClose, itemName, initialNotes, onSave
         {/* Custom text area */}
         <div>
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-            Special Instructions / Kitchen Notes
+            Special Cooking Instructions / Item Notes
           </label>
           <textarea
             value={notes}

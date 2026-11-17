@@ -16,7 +16,16 @@ export const CartProvider = ({ children }) => {
     return null;
   });
 
-  const [orderType, setOrderType] = useState('DINE_IN');
+  const [orderType, setOrderType] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.orderType || 'DINE_IN';
+      }
+    } catch {}
+    return 'DINE_IN';
+  });
   const [appendOrderId, setAppendOrderId] = useState(null); // When adding to existing order
   const [items, setItems] = useState(() => {
     try {
@@ -48,16 +57,24 @@ export const CartProvider = ({ children }) => {
 
   const selectTable = (table) => {
     setSelectedTable(table);
+    setOrderType('DINE_IN');
   };
 
   const clearTable = () => {
     setSelectedTable(null);
   };
 
+  const handleSetOrderType = (type) => {
+    setOrderType(type);
+    if (type === 'TAKEAWAY') {
+      setSelectedTable(null);
+    }
+  };
+
   const setAppendMode = (order, table) => {
     setAppendOrderId(order._id);
-    setSelectedTable(table || order.tableId);
-    setOrderType(order.orderType || 'DINE_IN');
+    setSelectedTable(table || order.tableId || null);
+    setOrderType(order.orderType || (order.tableId ? 'DINE_IN' : 'TAKEAWAY'));
   };
 
   const addItem = (menuItem, quantity = 1, notes = '') => {
@@ -148,7 +165,7 @@ export const CartProvider = ({ children }) => {
     grandTotal,
     selectTable,
     clearTable,
-    setOrderType,
+    setOrderType: handleSetOrderType,
     setAppendMode,
     addItem,
     updateQuantity,

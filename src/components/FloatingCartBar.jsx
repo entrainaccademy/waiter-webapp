@@ -6,7 +6,7 @@ import { useCart } from '../context/CartContext';
 export const FloatingCartBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { totalItems, grandTotal, selectedTable, appendOrderId } = useCart();
+  const { totalItems, grandTotal, selectedTable, orderType, appendOrderId } = useCart();
 
   // Don't show if on New Order / Checkout page or if cart is empty
   if (totalItems === 0 || location.pathname === '/new-order') {
@@ -26,7 +26,13 @@ export const FloatingCartBar = () => {
           <div>
             <div className="flex items-center space-x-1.5">
               <span className="text-xs font-bold uppercase tracking-wider bg-black/20 px-1.5 py-0.5 rounded text-orange-100">
-                {appendOrderId ? 'Add to Running Order' : (selectedTable ? `Table ${selectedTable.tableNumber}` : 'No Table')}
+                {appendOrderId
+                  ? 'Add to Running Order'
+                  : orderType === 'TAKEAWAY'
+                  ? 'Takeaway Order'
+                  : selectedTable
+                  ? `Table ${selectedTable.tableNumber}`
+                  : 'Select Table'}
               </span>
               <span className="text-xs text-orange-100">({totalItems} items)</span>
             </div>

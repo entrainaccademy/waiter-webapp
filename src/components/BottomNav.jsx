@@ -5,7 +5,6 @@ import {
   Grid,
   BookOpen,
   ClipboardList,
-  ChefHat,
   ShoppingBag,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -42,12 +41,6 @@ export const BottomNav = () => {
       path: '/orders',
       icon: ClipboardList,
       permission: 'orders:view',
-    },
-    {
-      label: 'KOT',
-      path: '/kot',
-      icon: ChefHat,
-      permission: 'kot:view',
     },
   ];
 

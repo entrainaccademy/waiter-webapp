@@ -69,7 +69,7 @@ export const Login = () => {
           <div className="mb-6">
             <h2 className="text-lg font-bold text-slate-800">Staff Portal Sign In</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Enter your credentials to access tables, menu & KOT
+              Enter your credentials to access tables, menu & orders
             </p>
           </div>
 
@@ -164,7 +164,7 @@ export const Login = () => {
         </div>
 
         <p className="text-center text-xs text-slate-400">
-          Connected to Restaurant POS + KOT SaaS Backend
+          Connected to Restaurant POS SaaS Backend
         </p>
       </div>
     </div>

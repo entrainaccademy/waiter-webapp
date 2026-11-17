@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import {
   Grid,
   ClipboardList,
-  ChefHat,
   BookOpen,
   ArrowRight,
   TrendingUp,
   RefreshCw,
   Sparkles,
   Users,
+  ShoppingBag,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import orderService from '../services/orderService';
 import tableService from '../services/tableService';
 import socketService from '../services/socket';
@@ -20,6 +21,7 @@ import StatusBadge from '../components/StatusBadge';
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
+  const { setOrderType } = useCart();
 
   const [metrics, setMetrics] = useState(null);
   const [tables, setTables] = useState([]);
@@ -97,7 +99,6 @@ export const Dashboard = () => {
     const unsubOrderCreated = socketService.on('order:created', () => fetchData());
     const unsubOrderUpdated = socketService.on('order:updated', () => fetchData());
     const unsubOrderCompleted = socketService.on('order:completed', () => fetchData());
-    const unsubKot = socketService.on('kot:created', () => fetchData());
 
     return () => {
       unsubTable();
@@ -105,7 +106,6 @@ export const Dashboard = () => {
       unsubOrderCreated();
       unsubOrderUpdated();
       unsubOrderCompleted();
-      unsubKot();
     };
   }, []);
 
@@ -178,6 +178,23 @@ export const Dashboard = () => {
           <p className="text-[11px] text-slate-400 mt-1 font-medium">Ready for guests</p>
         </div>
 
+        {/* Occupied Tables */}
+        <div
+          onClick={() => navigate('/tables')}
+          className="bg-white rounded-2xl p-4 border border-orange-100 shadow-touch cursor-pointer hover:border-orange-200 transition-all touch-press"
+        >
+          <div className="flex items-center justify-between text-orange-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-orange-700">
+              Occupied
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
+              <Grid className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-orange-600">{occupiedTablesCount}</p>
+          <p className="text-[11px] text-slate-400 mt-1 font-medium">Guests seated</p>
+        </div>
+
         {/* Active Orders */}
         <div
           onClick={() => navigate('/orders')}
@@ -196,25 +213,6 @@ export const Dashboard = () => {
           </p>
           <p className="text-[11px] text-slate-400 mt-1 font-medium">In dining room</p>
         </div>
-
-        {/* Pending KOT */}
-        <div
-          onClick={() => navigate('/kot')}
-          className="bg-white rounded-2xl p-4 border border-purple-100 shadow-touch cursor-pointer hover:border-purple-200 transition-all touch-press"
-        >
-          <div className="flex items-center justify-between text-purple-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-700">
-              Cooking KOT
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-              <ChefHat className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-purple-600">
-            {metrics?.pendingKotCount !== undefined ? metrics.pendingKotCount : 0}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1 font-medium">Pending kitchen</p>
-        </div>
       </div>
 
       {/* Quick Action Shortcuts */}
@@ -230,8 +228,22 @@ export const Dashboard = () => {
             <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center mb-2 shadow-sm">
               <Grid className="w-4 h-4" />
             </div>
-            <p className="font-bold text-xs text-orange-950">Select Table</p>
-            <p className="text-[10px] text-orange-700/80">Start new dining order</p>
+            <p className="font-bold text-xs text-orange-950">Dine-In Table</p>
+            <p className="text-[10px] text-orange-700/80">Select dining table</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setOrderType('TAKEAWAY');
+              navigate('/menu');
+            }}
+            className="p-3 bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200/80 rounded-2xl text-left transition-all touch-press"
+          >
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-2 shadow-sm">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
+            <p className="font-bold text-xs text-blue-950">New Takeaway</p>
+            <p className="text-[10px] text-blue-700/80">Pack for pickup</p>
           </button>
 
           <button
@@ -247,24 +259,13 @@ export const Dashboard = () => {
 
           <button
             onClick={() => navigate('/orders')}
-            className="p-3 bg-blue-50/60 hover:bg-blue-100/70 border border-blue-200/80 rounded-2xl text-left transition-all touch-press"
-          >
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-2 shadow-sm">
-              <ClipboardList className="w-4 h-4" />
-            </div>
-            <p className="font-bold text-xs text-blue-950">Active Orders</p>
-            <p className="text-[10px] text-blue-700/80">Track running tables</p>
-          </button>
-
-          <button
-            onClick={() => navigate('/kot')}
             className="p-3 bg-purple-50/60 hover:bg-purple-100/70 border border-purple-200/80 rounded-2xl text-left transition-all touch-press"
           >
             <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center mb-2 shadow-sm">
-              <ChefHat className="w-4 h-4" />
+              <ClipboardList className="w-4 h-4" />
             </div>
-            <p className="font-bold text-xs text-purple-950">Kitchen KOT</p>
-            <p className="text-[10px] text-purple-700/80">Live cooking status</p>
+            <p className="font-bold text-xs text-purple-950">Active Orders</p>
+            <p className="text-[10px] text-purple-700/80">Track running orders</p>
           </button>
         </div>
       </div>
@@ -305,9 +306,16 @@ export const Dashboard = () => {
               >
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
-                    <span className="font-extrabold text-sm text-slate-800">
-                      {ord.tableId?.tableNumber ? `Table ${ord.tableId.tableNumber}` : 'Takeaway'}
-                    </span>
+                    {ord.orderType === 'TAKEAWAY' ? (
+                      <span className="font-bold text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 inline-flex items-center space-x-1">
+                        <ShoppingBag className="w-3 h-3 text-blue-600" />
+                        <span>Takeaway</span>
+                      </span>
+                    ) : (
+                      <span className="font-extrabold text-sm text-slate-800">
+                        {ord.tableId?.tableNumber ? `Table ${ord.tableId.tableNumber}` : 'Dine-In'}
+                      </span>
+                    )}
                     <StatusBadge status={ord.status} size="sm" />
                   </div>
                   <div className="flex items-center space-x-2 text-xs text-slate-400">

@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Food Order - Staff Mobile PWA',
         short_name: 'Staff Order',
-        description: 'Mobile-first Staff Ordering PWA for Restaurant POS & KOT System',
+        description: 'Mobile-first Staff Ordering PWA for Restaurant POS',
         theme_color: '#ea580c',
         background_color: '#f8fafc',
         display: 'standalone',

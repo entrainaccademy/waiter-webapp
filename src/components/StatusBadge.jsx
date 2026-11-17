@@ -16,10 +16,6 @@ const statusStyles = {
   BILLED: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   COMPLETED: 'bg-slate-100 text-slate-700 border-slate-200',
   CANCELLED: 'bg-rose-50 text-rose-700 border-rose-200',
-
-  // KOT Kitchen Status
-  ACCEPTED: 'bg-blue-50 text-blue-700 border-blue-200',
-  IN_PROGRESS: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 const statusLabels = {
@@ -36,9 +32,6 @@ const statusLabels = {
   BILLED: 'Billed',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
-
-  ACCEPTED: 'Accepted',
-  IN_PROGRESS: 'Cooking',
 };
 
 export const StatusBadge = ({ status, size = 'md', className = '' }) => {

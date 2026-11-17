@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const API_URL = 'http://localhost:5000/api';
-const SOCKET_URL = 'http://localhost:5000';
+const API_URL = process.env.API_URL || 'https://kot-backend-za5d.onrender.com/api';
+const SOCKET_URL = process.env.SOCKET_URL || 'https://kot-backend-za5d.onrender.com';
 
 async function runStaffPWATests() {
   console.log('====================================================');

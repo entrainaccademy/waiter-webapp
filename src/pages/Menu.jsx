@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Sparkles,
   Check,
+  UtensilsCrossed,
 } from 'lucide-react';
 import menuService from '../services/menuService';
 import socketService from '../services/socket';
@@ -20,6 +21,8 @@ export const Menu = () => {
   const {
     items: cartItems,
     selectedTable,
+    orderType,
+    setOrderType,
     appendOrderId,
     addItem,
     updateQuantity,
@@ -86,30 +89,44 @@ export const Menu = () => {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Top Table / Order Context Banner */}
+      {/* Top Order Context Banner */}
       <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-touch">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-            <Layers className="w-4 h-4" />
+        <div className="flex items-center space-x-2.5 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+              orderType === 'TAKEAWAY'
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-orange-100 text-orange-600'
+            }`}
+          >
+            {orderType === 'TAKEAWAY' ? (
+              <ShoppingBag className="w-4 h-4" />
+            ) : (
+              <Layers className="w-4 h-4" />
+            )}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-xs font-black text-slate-800 truncate">
                 {appendOrderId
                   ? 'Adding to Running Order'
+                  : orderType === 'TAKEAWAY'
+                  ? 'Takeaway Order'
                   : selectedTable
                   ? `Table ${selectedTable.tableNumber}`
                   : 'Dine-In (No Table)'}
               </span>
-              {selectedTable && (
-                <span className="text-[10px] text-slate-400 font-medium">
+              {orderType === 'DINE_IN' && selectedTable && (
+                <span className="text-[10px] text-slate-400 font-medium shrink-0">
                   • {selectedTable.floor || 'Floor'}
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-slate-400 truncate">
               {appendOrderId
                 ? 'Items will be added to the active bill'
+                : orderType === 'TAKEAWAY'
+                ? 'No table required • Ready for packaging'
                 : selectedTable
                 ? 'Ready to take guest selection'
                 : 'Tap to assign dining table'}
@@ -117,12 +134,40 @@ export const Menu = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/tables')}
-          className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-2.5 py-1.5 rounded-xl border border-orange-200/80 active:scale-95 transition-all"
-        >
-          {selectedTable ? 'Change Table' : 'Select Table'}
-        </button>
+        {!appendOrderId && (
+          <div className="flex items-center space-x-1.5 shrink-0">
+            {orderType === 'DINE_IN' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/tables')}
+                  className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-2.5 py-1.5 rounded-xl border border-orange-200/80 active:scale-95 transition-all"
+                >
+                  {selectedTable ? 'Change Table' : 'Select Table'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderType('TAKEAWAY')}
+                  className="text-xs font-bold text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-2.5 py-1.5 rounded-xl border border-slate-200 active:scale-95 transition-all flex items-center space-x-1"
+                  title="Switch to Takeaway"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Takeaway</span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setOrderType('DINE_IN')}
+                className="text-xs font-bold text-slate-600 hover:text-orange-700 bg-slate-100 hover:bg-orange-50 px-2.5 py-1.5 rounded-xl border border-slate-200 active:scale-95 transition-all flex items-center space-x-1"
+                title="Switch to Dine-In"
+              >
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                <span>Switch to Dine-In</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Search & Veg toggle */}

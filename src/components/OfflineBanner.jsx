@@ -28,7 +28,7 @@ export const OfflineBanner = () => {
     <div className="bg-amber-500 text-amber-950 px-4 py-1.5 text-xs font-medium flex items-center justify-between shadow-sm sticky top-0 z-50">
       <div className="flex items-center space-x-2">
         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-        <span>Connecting to live restaurant kitchen sync...</span>
+        <span>Connecting to live server sync...</span>
       </div>
       <span className="bg-amber-600/30 text-amber-950 px-1.5 py-0.5 rounded text-[10px] font-mono">
         Reconnecting

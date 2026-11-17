@@ -8,6 +8,8 @@ import {
   Layers,
   ArrowRight,
   Filter,
+  ShoppingBag,
+  UtensilsCrossed,
 } from 'lucide-react';
 import orderService from '../services/orderService';
 import socketService from '../services/socket';
@@ -20,6 +22,7 @@ export const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [selectedType, setSelectedType] = useState('ALL'); // ALL, DINE_IN, TAKEAWAY
 
   const fetchOrders = async () => {
     try {
@@ -49,7 +52,7 @@ export const Orders = () => {
       unsubBilled();
     };
   }, []);
-
+  
   const statuses = [
     'ALL',
     'CONFIRMED',
@@ -65,11 +68,13 @@ export const Orders = () => {
     const tableNum = ord.tableId?.tableNumber || '';
     const matchesSearch =
       ord.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      tableNum.toLowerCase().includes(search.toLowerCase());
+      tableNum.toLowerCase().includes(search.toLowerCase()) ||
+      (ord.orderType && ord.orderType.toLowerCase().includes(search.toLowerCase()));
 
     const matchesStatus = selectedStatus === 'ALL' || ord.status === selectedStatus;
+    const matchesType = selectedType === 'ALL' || ord.orderType === selectedType;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   return (
@@ -104,6 +109,37 @@ export const Orders = () => {
             placeholder="Search order number (ORD-...) or table..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
           />
+        </div>
+
+        {/* Order Type Toggle Pills */}
+        <div className="flex items-center space-x-1.5 py-0.5">
+          {[
+            { id: 'ALL', label: 'All Services', icon: null },
+            { id: 'DINE_IN', label: 'Dine-In', icon: UtensilsCrossed },
+            { id: 'TAKEAWAY', label: 'Takeaway', icon: ShoppingBag },
+          ].map((type) => {
+            const Icon = type.icon;
+            const isSelected = selectedType === type.id;
+            return (
+              <button
+                key={type.id}
+                type="button"
+                onClick={() => setSelectedType(type.id)}
+                className={`text-xs px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1 transition-all ${
+                  isSelected
+                    ? type.id === 'TAKEAWAY'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : type.id === 'DINE_IN'
+                      ? 'bg-orange-600 text-white shadow-sm'
+                      : 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50'
+                }`}
+              >
+                {Icon && <Icon className="w-3 h-3" />}
+                <span>{type.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Status Horizontal Tabs */}
@@ -163,10 +199,17 @@ export const Orders = () => {
                       <StatusBadge status={ord.status} size="sm" />
                     </div>
                     <div className="flex items-center space-x-2 text-xs text-slate-400 mt-1">
-                      <span className="flex items-center space-x-1 font-semibold text-slate-600">
-                        <Layers className="w-3.5 h-3.5 text-orange-500" />
-                        <span>{tableNum ? `Table ${tableNum}` : ord.orderType}</span>
-                      </span>
+                      {ord.orderType === 'TAKEAWAY' ? (
+                        <span className="flex items-center space-x-1 font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 text-[11px]">
+                          <ShoppingBag className="w-3 h-3 text-blue-600" />
+                          <span>Takeaway</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center space-x-1 font-semibold text-slate-600">
+                          <Layers className="w-3.5 h-3.5 text-orange-500" />
+                          <span>{tableNum ? `Table ${tableNum}` : 'Dine-In'}</span>
+                        </span>
+                      )}
                       <span>•</span>
                       <span className="flex items-center space-x-1">
                         <Clock className="w-3 h-3" />

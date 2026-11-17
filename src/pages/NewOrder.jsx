@@ -12,7 +12,6 @@ import {
   Send,
   AlertCircle,
   CheckCircle2,
-  ChefHat,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -57,9 +56,7 @@ export const NewOrder = () => {
     }
   }, [selectedTable, orderType]);
 
-  const canManageKOT = hasPermission('kot:manage');
-
-  const handleSubmitOrder = async (sendKOTImmediately = false) => {
+  const handleSubmitOrder = async () => {
     if (!isOnline) {
       setError('Cannot submit orders while offline. Please connect to internet.');
       return;
@@ -89,21 +86,15 @@ export const NewOrder = () => {
         // 2. Creating brand new order
         resultOrder = await orderService.createOrder({
           orderType,
-          tableId: selectedTable?._id,
+          tableId: orderType === 'DINE_IN' ? selectedTable?._id : undefined,
           items,
           discount: Number(discount) || 0,
         });
-        setSuccessMsg('Order placed successfully!');
-      }
-
-      // 3. Immediately dispatch KOT if requested and authorized
-      if (sendKOTImmediately && canManageKOT && resultOrder?._id) {
-        try {
-          await orderService.generateKOT(resultOrder._id, 'MEDIUM');
-          setSuccessMsg('Order placed and KOT sent to kitchen!');
-        } catch (kotErr) {
-          console.warn('Auto KOT dispatch error:', kotErr.message);
-        }
+        setSuccessMsg(
+          orderType === 'TAKEAWAY'
+            ? 'Takeaway order placed successfully!'
+            : 'Dine-In order placed successfully!'
+        );
       }
 
       // Clear local cart
@@ -181,74 +172,170 @@ export const NewOrder = () => {
       {/* Order Context & Table Selection */}
       <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-touch space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm text-slate-800">Order Information</h3>
-          {appendOrderId ? (
+          <div>
+            <h3 className="font-bold text-sm text-slate-800">Order Type</h3>
+            <p className="text-[11px] text-slate-400">Choose service type for this order</p>
+          </div>
+          {appendOrderId && (
             <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
               Appending to Running Order
             </span>
-          ) : (
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-bold">
-              {['DINE_IN', 'TAKEAWAY', 'DELIVERY'].map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setOrderType(type)}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    orderType === type
-                      ? 'bg-white text-orange-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {type === 'DINE_IN' ? 'Dine In' : type === 'TAKEAWAY' ? 'Takeaway' : 'Delivery'}
-                </button>
-              ))}
-            </div>
           )}
         </div>
 
-        {/* Table Selector for Dine-In */}
+        {/* 1. ORDER TYPE SELECTION: 2 options (Dine-In vs Takeaway) */}
+        {!appendOrderId ? (
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={() => setOrderType('DINE_IN')}
+              className={`p-3 rounded-2xl border text-left transition-all flex items-center space-x-3 cursor-pointer ${
+                orderType === 'DINE_IN'
+                  ? 'bg-orange-50/80 border-orange-500 shadow-sm ring-1 ring-orange-500/30'
+                  : 'bg-slate-50 border-slate-200/80 hover:bg-slate-100/70 text-slate-600'
+              }`}
+            >
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  orderType === 'DINE_IN'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'bg-white text-slate-500 border border-slate-200'
+                }`}
+              >
+                <UtensilsCrossed className="w-4 h-4" />
+              </div>
+              <div>
+                <p className={`text-xs font-black ${orderType === 'DINE_IN' ? 'text-orange-950' : 'text-slate-800'}`}>
+                  Dine-In
+                </p>
+                <p className={`text-[10px] ${orderType === 'DINE_IN' ? 'text-orange-700/80' : 'text-slate-400'}`}>
+                  Serve at table
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOrderType('TAKEAWAY')}
+              className={`p-3 rounded-2xl border text-left transition-all flex items-center space-x-3 cursor-pointer ${
+                orderType === 'TAKEAWAY'
+                  ? 'bg-blue-50/80 border-blue-500 shadow-sm ring-1 ring-blue-500/30'
+                  : 'bg-slate-50 border-slate-200/80 hover:bg-slate-100/70 text-slate-600'
+              }`}
+            >
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  orderType === 'TAKEAWAY'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-white text-slate-500 border border-slate-200'
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+              </div>
+              <div>
+                <p className={`text-xs font-black ${orderType === 'TAKEAWAY' ? 'text-blue-950' : 'text-slate-800'}`}>
+                  Takeaway
+                </p>
+                <p className={`text-[10px] ${orderType === 'TAKEAWAY' ? 'text-blue-700/80' : 'text-slate-400'}`}>
+                  Pack for pickup
+                </p>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div className="pt-1">
+            <span className="text-xs font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-xl inline-block">
+              {orderType === 'TAKEAWAY' ? 'Takeaway Order' : 'Dine-In Order'}
+            </span>
+          </div>
+        )}
+
+        {/* 2. DINE-IN WORKFLOW: Table Selector */}
         {orderType === 'DINE_IN' && (
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Layers className="w-4 h-4 text-orange-500" />
-              <span className="text-xs font-bold text-slate-700">Dining Table:</span>
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Layers className="w-4 h-4 text-orange-500" />
+                <span className="text-xs font-bold text-slate-700">Dining Table</span>
+              </div>
+
+              {selectedTable && !appendOrderId && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/tables')}
+                  className="text-xs text-orange-600 font-bold hover:underline"
+                >
+                  Change Table
+                </button>
+              )}
             </div>
 
             {selectedTable ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-black text-orange-700 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200">
-                  {selectedTable.tableNumber} ({selectedTable.floor || 'Main'})
+              <div className="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-3 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-extrabold text-orange-950 block">
+                    Table {selectedTable.tableNumber}
+                  </span>
+                  <span className="text-[10px] text-orange-700/80">
+                    {selectedTable.floor || 'Floor'} • {selectedTable.capacity ? `${selectedTable.capacity} Seats` : 'Standard'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-200/70 text-orange-800 px-2 py-0.5 rounded-full">
+                  Assigned
                 </span>
-                {!appendOrderId && (
-                  <button
-                    onClick={() => navigate('/tables')}
-                    className="text-xs text-orange-600 font-bold hover:underline"
-                  >
-                    Change
-                  </button>
-                )}
               </div>
             ) : (
-              <select
-                onChange={(e) => {
-                  const t = tables.find((tbl) => tbl._id === e.target.value);
-                  if (t) selectTable(t);
-                }}
-                defaultValue=""
-                className="text-xs py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-              >
-                <option value="" disabled>
-                  Select a Table...
-                </option>
-                {tables
-                  .filter((t) => t.status === 'AVAILABLE')
-                  .map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.tableNumber} - {t.floor} ({t.capacity} Seats)
-                    </option>
-                  ))}
-              </select>
+              <div className="space-y-2">
+                <select
+                  onChange={(e) => {
+                    const t = tables.find((tbl) => tbl._id === e.target.value);
+                    if (t) selectTable(t);
+                  }}
+                  defaultValue=""
+                  className="w-full text-xs py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                >
+                  <option value="" disabled>
+                    Choose an available table...
+                  </option>
+                  {tables
+                    .filter((t) => t.status === 'AVAILABLE')
+                    .map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {t.tableNumber} - {t.floor} ({t.capacity} Seats)
+                      </option>
+                    ))}
+                </select>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tables')}
+                    className="text-xs font-bold text-orange-600 hover:text-orange-700 inline-flex items-center space-x-1"
+                  >
+                    <span>Or select from interactive table floor map</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
             )}
+          </div>
+        )}
+
+        {/* 3. TAKEAWAY WORKFLOW: Banner (No table required) */}
+        {orderType === 'TAKEAWAY' && (
+          <div className="pt-3 border-t border-slate-100">
+            <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3 flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-blue-950">
+                  Takeaway Order
+                </p>
+                <p className="text-[10px] text-blue-700/80">
+                  No table required. Items will be packed for takeaway pickup.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -370,42 +457,26 @@ export const NewOrder = () => {
         </div>
       </div>
 
-      {/* Submission Buttons */}
-      <div className="space-y-2 pt-2">
-        {canManageKOT ? (
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => handleSubmitOrder(true)}
-            className="w-full py-3.5 px-4 bg-orange-600 hover:bg-orange-700 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-float flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all"
-          >
-            {submitting ? (
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <ChefHat className="w-5 h-5" />
-                <span>Place Order & Dispatch KOT to Kitchen</span>
-              </>
-            )}
-          </button>
-        ) : null}
-
+      {/* Submission Button */}
+      <div className="pt-2">
         <button
           type="button"
           disabled={submitting}
-          onClick={() => handleSubmitOrder(false)}
-          className={`w-full py-3 px-4 font-bold text-xs sm:text-sm rounded-2xl border transition-all flex items-center justify-center space-x-1.5 touch-press ${
-            canManageKOT
-              ? 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-              : 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600 shadow-md'
-          }`}
+          onClick={handleSubmitOrder}
+          className="w-full py-3.5 px-4 bg-orange-600 hover:bg-orange-700 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-float flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
         >
           {submitting ? (
-            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>{canManageKOT ? 'Save Order Only (No KOT)' : 'Submit Order'}</span>
+              <span>
+                {appendOrderId
+                  ? 'Add Items to Order'
+                  : orderType === 'TAKEAWAY'
+                  ? 'Submit Takeaway Order'
+                  : 'Submit Dine-In Order'}
+              </span>
             </>
           )}
         </button>

@@ -11,7 +11,6 @@ import Menu from './pages/Menu';
 import NewOrder from './pages/NewOrder';
 import Orders from './pages/Orders';
 import OrderDetails from './pages/OrderDetails';
-import KOT from './pages/KOT';
 import Profile from './pages/Profile';
 
 const ProtectedRoute = ({ children }) => {
@@ -57,7 +56,6 @@ export const App = () => {
         <Route path="new-order" element={<NewOrder />} />
         <Route path="orders" element={<Orders />} />
         <Route path="orders/:id" element={<OrderDetails />} />
-        <Route path="kot" element={<KOT />} />
         <Route path="profile" element={<Profile />} />
       </Route>
 
