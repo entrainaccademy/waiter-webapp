@@ -84,39 +84,20 @@ export const OrderDetails = () => {
     };
   }, [id]);
 
-  // 1. Request Bill from Counter (Pending cashier confirmation)
+  // 1. Request Bill from Counter (sends bill request to main POS at /restaurant/pos)
   const handleRequestBill = async () => {
     if (!isOnline) {
       setError('Cannot submit bill request while offline.');
-      return;
-    }
-    if (!window.confirm('Send bill request to counter cashier? (Cashier will confirm and generate the bill)')) {
       return;
     }
     try {
       setActionLoading(true);
       setError('');
       await orderService.requestBill(id);
-      setSuccessMsg('Bill request sent successfully.');
+      setSuccessMsg('Bill passed');
       await fetchOrderDetails();
     } catch (err) {
       setError(err.message || 'Failed to submit bill request.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Cancel pending bill request
-  const handleCancelBillRequest = async () => {
-    if (!window.confirm('Cancel this pending bill request?')) return;
-    try {
-      setActionLoading(true);
-      setError('');
-      await orderService.cancelBillRequest(id);
-      setSuccessMsg('Bill request cancelled.');
-      await fetchOrderDetails();
-    } catch (err) {
-      setError(err.message || 'Failed to cancel bill request.');
     } finally {
       setActionLoading(false);
     }
@@ -172,7 +153,7 @@ export const OrderDetails = () => {
   }
 
   const tableNum = order.tableId?.tableNumber;
-  const isBilledOrCompleted = ['BILLED', 'COMPLETED', 'CANCELLED'].includes(order.status);
+  const isOrderClosed = ['COMPLETED', 'CANCELLED'].includes(order.status);
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in duration-200">
@@ -319,10 +300,10 @@ export const OrderDetails = () => {
       </div>
 
       {/* Operational Actions */}
-      {!isBilledOrCompleted && (
+      {!isOrderClosed && (
         <div className="space-y-2 pt-2">
           {/* Add more items */}
-          {canManageOrders && (
+          {canManageOrders && order.status !== 'BILLED' && !order.billRequest?.status && (
             <button
               onClick={handleAddMoreItems}
               className="w-full py-3 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center space-x-1.5 touch-press transition-all"
@@ -334,69 +315,45 @@ export const OrderDetails = () => {
             </button>
           )}
 
-          {/* Request / Generate Bill */}
+          {/* Request Bill Button / Bill passed indicator */}
           {(() => {
-            const billStatus = order.billRequest?.status || 'NOT_REQUESTED';
+            const isBillPassed =
+              order.billRequest?.status === 'REQUESTED' ||
+              order.billRequest?.status === 'CONFIRMED' ||
+              order.status === 'BILLED';
 
-            if (billStatus === 'REQUESTED') {
-              const isRequestedByMe =
-                user?.id === (order.billRequest?.requestedBy?._id || order.billRequest?.requestedBy) ||
-                user?.role !== 'WAITER';
-
+            if (isBillPassed) {
               return (
-                <div className="space-y-2">
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-center space-y-1.5 shadow-sm">
-                    <div className="flex items-center justify-center gap-1.5 text-amber-800 font-extrabold text-xs">
-                      <Clock className="w-4 h-4 animate-spin text-amber-600" />
-                      <span>Bill Request Sent to Counter</span>
-                    </div>
-                    <p className="text-[11px] text-amber-700">
-                      Requested by {order.billRequest?.requestedBy?.name || 'Staff'}. Awaiting cashier confirmation.
-                    </p>
-                    {isRequestedByMe && (
-                      <button
-                        type="button"
-                        onClick={handleCancelBillRequest}
-                        disabled={actionLoading}
-                        className="mt-1 text-[11px] font-bold text-amber-900 hover:text-red-600 underline transition-colors cursor-pointer"
-                      >
-                        Cancel Bill Request
-                      </button>
-                    )}
-                  </div>
-
-                  <button
-                    disabled
-                    className="w-full py-3.5 px-4 bg-amber-500 text-white font-extrabold text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 cursor-not-allowed opacity-90"
-                  >
-                    <Clock className="w-4 h-4 animate-spin text-white" />
-                    <span>Bill Requested</span>
-                  </button>
-                </div>
+                <button
+                  disabled
+                  className="w-full py-3.5 px-4 bg-emerald-600 text-white font-extrabold text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 cursor-default"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>Bill passed</span>
+                </button>
               );
             }
 
             return (
-              <div className="space-y-1.5">
-                {billStatus === 'CANCELLED' && (
-                  <div className="text-center text-[11px] font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2 mb-1">
-                    Previous bill request was cancelled. You can request again below.
-                  </div>
+              <button
+                onClick={handleRequestBill}
+                disabled={actionLoading}
+                className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
+              >
+                {actionLoading ? (
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Receipt className="w-4 h-4 text-orange-400" />
+                    <span>Request Bill</span>
+                  </>
                 )}
-                <button
-                  onClick={handleRequestBill}
-                  disabled={actionLoading}
-                  className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
-                >
-                  <Receipt className="w-4 h-4 text-orange-400" />
-                  <span>Request Bill / Generate Invoice</span>
-                </button>
-              </div>
+              </button>
             );
           })()}
 
           {/* Cancel Order */}
-          {canManageOrders && (
+          {canManageOrders && order.status !== 'BILLED' && !order.billRequest?.status && (
             <button
               onClick={handleCancelOrder}
               disabled={actionLoading}
@@ -406,21 +363,6 @@ export const OrderDetails = () => {
               <span>Cancel Order</span>
             </button>
           )}
-        </div>
-      )}
-
-      {(order.status === 'BILLED' || order.billRequest?.status === 'CONFIRMED') && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-1.5 shadow-sm">
-          <Receipt className="w-6 h-6 text-emerald-600 mx-auto" />
-          <h4 className="font-extrabold text-xs text-emerald-950">Bill Confirmed — Invoice Generated</h4>
-          <p className="text-[11px] text-emerald-800 font-medium">
-            {order.billRequest?.invoiceId?.invoiceNumber || order.invoiceNumber
-              ? `Invoice #${order.billRequest?.invoiceId?.invoiceNumber || order.invoiceNumber}`
-              : 'Invoice has been generated at the billing counter.'}
-          </p>
-          <p className="text-[10px] text-emerald-600">
-            Table will be released once cashier settles payment at the POS counter.
-          </p>
         </div>
       )}
     </div>
