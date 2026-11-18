@@ -63,13 +63,11 @@ export const OrderDetails = () => {
     });
     const unsubBillConfirmed = socketService.on('bill:confirmed', (payload) => {
       if (payload.orderId === id) {
-        setSuccessMsg('Bill confirmed by cashier! Invoice generated.');
         fetchOrderDetails();
       }
     });
     const unsubBillCancelled = socketService.on('bill:cancelled', (payload) => {
       if (payload.orderId === id) {
-        setError('Bill request was cancelled.');
         fetchOrderDetails();
       }
     });
