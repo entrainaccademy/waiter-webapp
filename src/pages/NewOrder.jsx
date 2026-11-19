@@ -17,6 +17,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import orderService from '../services/orderService';
 import tableService from '../services/tableService';
+import socketService from '../services/socket';
 import ItemNotesModal from '../components/ItemNotesModal';
 
 export const NewOrder = () => {
@@ -46,7 +47,7 @@ export const NewOrder = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [editingNoteItem, setEditingNoteItem] = useState(null);
 
-  // Fetch tables if not chosen yet
+  // Fetch tables if not chosen yet & subscribe to live table status changes
   useEffect(() => {
     if (!selectedTable && orderType === 'DINE_IN') {
       tableService
@@ -54,6 +55,23 @@ export const NewOrder = () => {
         .then((data) => setTables(data || []))
         .catch((err) => console.warn('Could not load tables:', err));
     }
+
+    const unsubTableStatus = socketService.on('table:status-updated', (payload) => {
+      setTables((prev) =>
+        prev.map((t) => (t._id === payload.tableId ? { ...t, status: payload.status } : t))
+      );
+    });
+
+    const unsubTableReleased = socketService.on('table:released', (payload) => {
+      setTables((prev) =>
+        prev.map((t) => (t._id === payload.tableId ? { ...t, status: 'AVAILABLE' } : t))
+      );
+    });
+
+    return () => {
+      unsubTableStatus();
+      unsubTableReleased();
+    };
   }, [selectedTable, orderType]);
 
   const handleSubmitOrder = async () => {
@@ -67,7 +85,7 @@ export const NewOrder = () => {
       return;
     }
 
-    if (orderType === 'DINE_IN' && !selectedTable) {
+    if (orderType === 'DINE_IN' && !selectedTable && !appendOrderId) {
       setError('Please select a dining table for Dine-In orders.');
       return;
     }
@@ -80,7 +98,8 @@ export const NewOrder = () => {
 
       // 1. Appending to existing order
       if (appendOrderId) {
-        resultOrder = await orderService.addItemsToOrder(appendOrderId, items);
+        const idempotencyKey = `add_${appendOrderId}_${Date.now()}`;
+        resultOrder = await orderService.addItemsToOrder(appendOrderId, items, idempotencyKey);
         setSuccessMsg('Items added to running order successfully!');
       } else {
         // 2. Creating brand new order

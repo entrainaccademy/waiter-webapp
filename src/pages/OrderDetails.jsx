@@ -32,6 +32,7 @@ export const OrderDetails = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   const canManageOrders = hasPermission('orders:manage');
+  const canCreateOrders = hasPermission('orders:create');
   const canCreateBilling = hasPermission('billing:create');
 
   const fetchOrderDetails = async () => {
@@ -300,55 +301,59 @@ export const OrderDetails = () => {
       {/* Operational Actions */}
       {!isOrderClosed && (
         <div className="space-y-2 pt-2">
-          {/* Add more items */}
-          {canManageOrders && order.status !== 'BILLED' && !order.billRequest?.status && (
-            <button
-              onClick={handleAddMoreItems}
-              className="w-full py-3 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center space-x-1.5 touch-press transition-all"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>
-                Add More Items to this {order.orderType === 'TAKEAWAY' ? 'Takeaway Order' : 'Table'}
-              </span>
-            </button>
-          )}
-
-          {/* Request Bill Button / Bill passed indicator */}
-          {(() => {
-            const isBillPassed =
-              order.billRequest?.status === 'REQUESTED' ||
-              order.billRequest?.status === 'CONFIRMED' ||
-              order.status === 'BILLED';
-
-            if (isBillPassed) {
-              return (
-                <button
-                  disabled
-                  className="w-full py-3.5 px-4 bg-emerald-600 text-white font-extrabold text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 cursor-default"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>Bill passed</span>
-                </button>
-              );
-            }
-
-            return (
+          {/* Action Buttons: "+ Add Food" and "Request Bill" placed beside each other */}
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            {/* Secondary "+ Add Food" button for confirmed/open orders */}
+            {(canManageOrders || canCreateOrders) && order.status !== 'BILLED' && (
               <button
-                onClick={handleRequestBill}
-                disabled={actionLoading}
-                className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
+                type="button"
+                onClick={handleAddMoreItems}
+                className="flex-1 py-3.5 px-4 bg-orange-50 hover:bg-orange-100 active:scale-[0.99] border-2 border-orange-500 text-orange-700 font-extrabold text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 touch-press transition-all cursor-pointer"
               >
-                {actionLoading ? (
-                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Receipt className="w-4 h-4 text-orange-400" />
-                    <span>Request Bill</span>
-                  </>
-                )}
+                <PlusCircle className="w-4 h-4 text-orange-600" />
+                <span>+ Add Food</span>
               </button>
-            );
-          })()}
+            )}
+
+            {/* Request Bill Button / Bill passed indicator */}
+            <div className="flex-1">
+              {(() => {
+                const isBillPassed =
+                  order.billRequest?.status === 'REQUESTED' ||
+                  order.billRequest?.status === 'CONFIRMED' ||
+                  order.status === 'BILLED';
+
+                if (isBillPassed) {
+                  return (
+                    <button
+                      disabled
+                      className="w-full py-3.5 px-4 bg-emerald-600 text-white font-extrabold text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 cursor-default"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-white" />
+                      <span>Bill passed</span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    onClick={handleRequestBill}
+                    disabled={actionLoading}
+                    className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 touch-press transition-all cursor-pointer"
+                  >
+                    {actionLoading ? (
+                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Receipt className="w-4 h-4 text-orange-400" />
+                        <span>Request Bill</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
 
           {/* Cancel Order */}
           {canManageOrders && order.status !== 'BILLED' && !order.billRequest?.status && (

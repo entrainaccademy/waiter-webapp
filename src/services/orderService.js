@@ -41,13 +41,14 @@ export const orderService = {
     };
   },
 
-  async addItemsToOrder(orderId, items) {
+  async addItemsToOrder(orderId, items, idempotencyKey) {
     const payload = {
       items: items.map((item) => ({
         menuItemId: item.menuItemId || item._id,
         quantity: item.quantity,
         ...(item.notes ? { notes: item.notes } : {}),
       })),
+      ...(idempotencyKey ? { idempotencyKey } : {}),
     };
     const response = await api.post(`/restaurant/orders/${orderId}/items`, payload);
     return response.data.data;
